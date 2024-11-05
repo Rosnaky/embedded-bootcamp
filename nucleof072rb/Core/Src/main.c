@@ -41,6 +41,7 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+#define MAX_VAL 1023
 
 /* USER CODE END PM */
 
@@ -101,6 +102,9 @@ int main(void)
   // Bring CS line (PB8) high initially
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);
 
+  // Start timer
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+
 
   /* USER CODE END 2 */
 
@@ -108,8 +112,12 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
+	  // Read and parse data
 	  uint16_t data = read_adc();
+	  uint16_t value = (htmi1.Init.Period * 0.1 - htmi1.Init.Period * 0.05)
+			  * data/MAX_VALUE;
+
+	  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, value);
 
     /* USER CODE END WHILE */
 
@@ -168,7 +176,7 @@ void SystemClock_Config(void)
  */
 uint16_t read_adc(void) {
 	// Transmit buffer to select CH1
-	uint8_t transmit_data[3] = {0, 0, 1<<7};
+	uint8_t transmit_data[3] = {1, 0b1010 << 4, 0};
 
 	// Receive buffer
 	uint8_t receive_data[3];
@@ -183,7 +191,7 @@ uint16_t read_adc(void) {
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);
 
 	// Grab the last two bits from the second byte and the last byte
-	uint16_t result = ((receive_data[1] & ((1 << 3) - 1)) << 8) | receive_data[2];
+	uint16_t result = ((receive_data[1] & 0b11) << 8) | receive_data[2];
 
 	return result;
 }
