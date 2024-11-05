@@ -19,8 +19,11 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "spi.h"
+#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
+
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -49,6 +52,7 @@
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+uint16_t read_adc();
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -74,6 +78,9 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+//  SPI_HandleTypeDef hspi;
+//  HAL_SPI_MspInit(&hspi);
+
 
   /* USER CODE END Init */
 
@@ -87,7 +94,13 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART2_UART_Init();
+  MX_SPI1_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
+
+  // Bring CS line (PB8) high initially
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);
+
 
   /* USER CODE END 2 */
 
@@ -95,12 +108,17 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
+	  uint16_t data = read_adc();
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  HAL_Delay(10);
   }
   /* USER CODE END 3 */
 }
+
 
 /**
   * @brief System Clock Configuration
@@ -143,6 +161,32 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+/**
+ * @brief This function handles reading and transmitting data to adc. The value received is returned
+ * @retval uint16_t
+ */
+uint16_t read_adc(void) {
+	// Transmit buffer to select CH1
+	uint8_t transmit_data[3] = {0, 0, 1<<7};
+
+	// Receive buffer
+	uint8_t receive_data[3];
+
+	// Pull CS to low to start transmitting
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
+
+	// Transmit and receive to/from adc
+	HAL_SPI_TransmitReceive(&hspi1, transmit_data, receive_data, 2, HAL_MAX_DELAY);
+
+	// Stop transmitting
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);
+
+	// Grab the last two bits from the second byte and the last byte
+	uint16_t result = ((receive_data[1] & ((1 << 3) - 1)) << 8) | receive_data[2];
+
+	return result;
+}
 
 /* USER CODE END 4 */
 
