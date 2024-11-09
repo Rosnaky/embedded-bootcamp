@@ -48,12 +48,20 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+const float MAX_DUTY_CYCLE = .1;
+const float MIN_DUTY_CYCLE = .05;
+const int INPUT_CLOCK = 48e6; //48 MHz
+const int PRESCALER = 14;
+const int FREQUENCY = 50;
+const int COUNTER_PERIOD = (INPUT_CLOCK/(PRESCALER+1))/FREQUENCY;
+const int MAX_VALUE = 1023;
+
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-uint16_t read_adc();
+HAL_StatusTypeDef read_adc(uint16_t * data);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -113,11 +121,16 @@ int main(void)
   while (1)
   {
 	  // Read and parse data
-	  uint16_t data = read_adc();
-	  uint16_t value = (htmi1.Init.Period * 0.1 - htmi1.Init.Period * 0.05)
+	  uint16_t data;
+	  HAL_StatusTypeDef success = read_adc(&data);
+
+	  if (success == HAL_OK) {
+		  uint16_t value = (COUNTER_PERIOD * MAX_DUTY_CYCLE - COUNTER_PERIOD * MIN_DUTY_CYCLE)
 			  * data/MAX_VALUE;
 
-	  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, value);
+	  	  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, value);
+	  }
+
 
     /* USER CODE END WHILE */
 
@@ -174,7 +187,7 @@ void SystemClock_Config(void)
  * @brief This function handles reading and transmitting data to adc. The value received is returned
  * @retval uint16_t
  */
-uint16_t read_adc(void) {
+HAL_StatusTypeDef read_adc(uint16_t * data) {
 	// Transmit buffer to select CH1
 	uint8_t transmit_data[3] = {1, 0b1010 << 4, 0};
 
@@ -185,15 +198,17 @@ uint16_t read_adc(void) {
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
 
 	// Transmit and receive to/from adc
-	HAL_SPI_TransmitReceive(&hspi1, transmit_data, receive_data, 2, HAL_MAX_DELAY);
+	HAL_StatusTypeDef success = HAL_SPI_TransmitReceive(&hspi1, transmit_data, receive_data, 2, HAL_MAX_DELAY);
 
 	// Stop transmitting
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);
 
-	// Grab the last two bits from the second byte and the last byte
-	uint16_t result = ((receive_data[1] & 0b11) << 8) | receive_data[2];
+	// If successful, grab the last two bits from the second byte and the last byte
+	if (success == HAL_OK) {
+		*data = ((receive_data[1] & 0b11) << 8) | receive_data[2];
+	}
 
-	return result;
+	return success;
 }
 
 /* USER CODE END 4 */
