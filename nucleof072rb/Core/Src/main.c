@@ -24,7 +24,6 @@
 #include "usart.h"
 #include "gpio.h"
 
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -41,19 +40,12 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-#define MAX_VAL 1023
 
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-const float MAX_DUTY_CYCLE = .1;
-const float MIN_DUTY_CYCLE = .05;
-const int INPUT_CLOCK = 48e6; //48 MHz
-const int PRESCALER = 14;
-const int FREQUENCY = 50;
-const int COUNTER_PERIOD = (INPUT_CLOCK/(PRESCALER+1))/FREQUENCY;
 const int MAX_VALUE = 1023;
 
 
@@ -61,7 +53,6 @@ const int MAX_VALUE = 1023;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-HAL_StatusTypeDef read_adc(uint16_t * data);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -110,6 +101,9 @@ int main(void)
   // Bring CS line (PB8) high initially
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);
 
+  // Reset compare register
+  __HAL_TIME_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0.05*__HAL_TIM_GET_AUTORELOAD);
+
   // Start timer
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
 
@@ -139,7 +133,6 @@ int main(void)
   }
   /* USER CODE END 3 */
 }
-
 
 /**
   * @brief System Clock Configuration
@@ -189,7 +182,7 @@ void SystemClock_Config(void)
  */
 HAL_StatusTypeDef read_adc(uint16_t * data) {
 	// Transmit buffer to select CH1
-	uint8_t transmit_data[3] = {1, 0b1010 << 4, 0};
+	uint8_t transmit_data[3] = {1, 0b1001 << 4, 0};
 
 	// Receive buffer
 	uint8_t receive_data[3];
@@ -198,7 +191,7 @@ HAL_StatusTypeDef read_adc(uint16_t * data) {
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
 
 	// Transmit and receive to/from adc
-	HAL_StatusTypeDef success = HAL_SPI_TransmitReceive(&hspi1, transmit_data, receive_data, 2, HAL_MAX_DELAY);
+	HAL_StatusTypeDef success = HAL_SPI_TransmitReceive(&hspi1, transmit_data, receive_data, 3, HAL_MAX_DELAY);
 
 	// Stop transmitting
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);
