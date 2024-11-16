@@ -119,8 +119,7 @@ int main(void)
 	  HAL_StatusTypeDef success = read_adc(&data);
 
 	  if (success == HAL_OK) {
-		  uint16_t value = (COUNTER_PERIOD * MAX_DUTY_CYCLE - COUNTER_PERIOD * MIN_DUTY_CYCLE)
-			  * data/MAX_VALUE;
+		  uint16_t value = (__HAL_TIM_GET_AUTORELOAD * 0.05)*(data / MAX_VALUE);
 
 	  	  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, value);
 	  }
