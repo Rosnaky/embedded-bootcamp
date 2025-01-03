@@ -102,7 +102,7 @@ int main(void)
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);
 
   // Reset compare register
-  __HAL_TIME_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0.05*__HAL_TIM_GET_AUTORELOAD);
+  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0.05 * __HAL_TIM_GET_AUTORELOAD(&htim1));
 
   // Start timer
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
@@ -119,7 +119,7 @@ int main(void)
 	  HAL_StatusTypeDef success = read_adc(&data);
 
 	  if (success == HAL_OK) {
-		  uint16_t value = (__HAL_TIM_GET_AUTORELOAD * 0.05)*(data / MAX_VALUE);
+		  uint16_t value = (__HAL_TIM_GET_AUTORELOAD(&htim1) * 0.05) * (1.0 + data / MAX_VALUE);
 
 	  	  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, value);
 	  }
